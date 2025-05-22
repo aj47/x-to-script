@@ -35,7 +35,7 @@ logger = logging.getLogger('x-thread-dl')
 @click.option('--output-dir', '-o', default=config.DEFAULT_OUTPUT_DIR,
               help=f'Directory to save downloaded videos (default: {config.DEFAULT_OUTPUT_DIR})')
 @click.option('--apify-token', '-t', default=None,
-              help='Apify API token (can also be set in config.py or as APIFY_API_TOKEN environment variable)')
+              help='Apify API token (can also be set as APIFY_API_TOKEN environment variable or in a .env file)')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
 def main(tweet_url: str, reply_limit: int, output_dir: str, apify_token: Optional[str], verbose: bool):
     """
@@ -56,7 +56,7 @@ def main(tweet_url: str, reply_limit: int, output_dir: str, apify_token: Optiona
     # Use the provided Apify token or the one from config
     api_token = apify_token or config.APIFY_API_TOKEN
     if not api_token:
-        logger.error("No Apify API token provided. Set it with --apify-token, in config.py, or as APIFY_API_TOKEN environment variable.")
+        logger.error("No Apify API token provided. Set it with --apify-token, in a .env file, or as APIFY_API_TOKEN environment variable.")
         sys.exit(1)
     
     # Create the output directory if it doesn't exist

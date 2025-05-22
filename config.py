@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Apify API token
-APIFY_API_TOKEN = os.getenv("APIFY_API_TOKEN", "apify_api_8oZYRWgJSMEVlHtzOPWc2MCFjKtgxo17Qkwk")
+APIFY_API_TOKEN = os.getenv("APIFY_API_TOKEN")
 
 # Default settings
 DEFAULT_REPLY_LIMIT = 50

@@ -35,7 +35,7 @@ Videos are saved with the naming convention `author_tweetID.mp4`.
    pip install -r requirements.txt
    ```
 
-4. Set up your Apify API token:
+4. Set up your Apify API token (required):
    - Create a `.env` file in the project directory with:
      ```
      APIFY_API_TOKEN=your_apify_token_here
@@ -62,7 +62,7 @@ python main.py https://twitter.com/username/status/123456789 --reply-limit 100 -
 
 - `--reply-limit`, `-r`: Maximum number of replies to fetch (default: 50)
 - `--output-dir`, `-o`: Directory to save downloaded videos (default: ./downloaded_videos)
-- `--apify-token`, `-t`: Apify API token (can also be set in config.py or as APIFY_API_TOKEN environment variable)
+- `--apify-token`, `-t`: Apify API token (can also be set as APIFY_API_TOKEN environment variable or in a .env file)
 - `--verbose`, `-v`: Enable verbose output
 
 ## How It Works
