@@ -14,7 +14,7 @@ import config
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger('x-thread-dl.scraper')
@@ -141,7 +141,14 @@ class Scraper:
             
             # Log success
             logger.info(f"Successfully fetched {len(dataset_items)} replies from URL: {url}")
-            
+
+            # Debug: Log the keys of each reply object to diagnose tweet ID extraction issues
+            for i, reply in enumerate(dataset_items):
+                logger.debug(f"Reply {i} keys: {list(reply.keys())}")
+                # Debug: Log the full structure of the first reply to help diagnose author extraction issues
+                if i == 0:
+                    logger.debug(f"Reply 0 full structure: {reply}")
+
             return dataset_items
             
         except Exception as e:

@@ -20,10 +20,11 @@ import config
 from scraper import Scraper
 import thread_parser
 import video_downloader
+import text_extractor
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger('x-thread-dl')
@@ -94,13 +95,38 @@ async def process_tweet(tweet_url: str, reply_limit: int, output_dir: str, api_t
         
         logger.info(f"Successfully fetched tweet and {len(replies)} replies")
         
+        # Extract text from the thread
+        logger.info("Extracting text from the thread...")
+        thread_text = text_extractor.extract_thread_text(tweet, replies)
+        
+        if thread_text:
+            # Get original author and tweet ID for filename
+            original_author = thread_text[0]['author']
+            original_tweet_id = thread_text[0]['tweet_id']
+            
+            # Save thread text
+            logger.info("Saving thread text...")
+            text_path = text_extractor.save_thread_text(thread_text, output_dir, original_author, original_tweet_id)
+            
+            if text_path:
+                logger.info(f"Thread text saved to: {text_path}")
+            else:
+                logger.warning("Failed to save thread text")
+        else:
+            logger.warning("No text extracted from the thread")
+        
         # Identify thread videos
         logger.info("Identifying thread videos...")
         thread_videos = thread_parser.identify_thread_videos(tweet, replies, scraper)
         
         if not thread_videos:
             logger.warning("No videos found in the thread")
-            sys.exit(0)
+            if thread_text:
+                logger.info("Text data was saved successfully")
+                sys.exit(0)
+            else:
+                logger.error("No videos or text data was saved")
+                sys.exit(1)
         
         logger.info(f"Found {len(thread_videos)} videos in the thread")
         
@@ -110,13 +136,20 @@ async def process_tweet(tweet_url: str, reply_limit: int, output_dir: str, api_t
         
         if not downloaded_videos:
             logger.warning("Failed to download any videos")
-            sys.exit(1)
+            if thread_text:
+                logger.info("Text data was saved successfully")
+                sys.exit(0)
+            else:
+                logger.error("No videos or text data was saved")
+                sys.exit(1)
         
         logger.info(f"Successfully downloaded {len(downloaded_videos)} videos:")
         for video_path in downloaded_videos:
             logger.info(f"  - {os.path.basename(video_path)}")
         
         logger.info(f"Videos saved to: {os.path.abspath(output_dir)}")
+        if thread_text:
+            logger.info(f"Text data saved to: {os.path.join(os.path.abspath(output_dir), 'tweet_text')}")
         
     except Exception as e:
         logger.error(f"Error processing tweet: {str(e)}", exc_info=True)
