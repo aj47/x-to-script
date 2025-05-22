@@ -1,0 +1,4 @@
+apify-client>=1.0.0
+yt-dlp>=2023.0.0
+click>=8.0.0
+python-dotenv>=0.19.0
