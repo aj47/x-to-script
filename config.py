@@ -13,7 +13,7 @@ APIFY_API_TOKEN = os.getenv("APIFY_API_TOKEN")
 
 # Default settings
 DEFAULT_REPLY_LIMIT = 50
-DEFAULT_OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloaded_videos")
+DEFAULT_OUTPUT_DIR = "output"  # Base directory for all downloaded content
 
 # Apify actor IDs
 TWITTER_SCRAPER_ACTOR_ID = "u6ppkMWAx2E2MpEuF"  # For fetching tweets
