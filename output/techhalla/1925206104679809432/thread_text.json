@@ -1,0 +1,159 @@
+{
+    "__typename": "Tweet",
+    "lang": "en",
+    "favorite_count": 8530,
+    "possibly_sensitive": false,
+    "created_at": "2025-05-21T15:04:38.000Z",
+    "display_text_range": [
+        0,
+        172
+    ],
+    "entities": {
+        "hashtags": [],
+        "urls": [],
+        "user_mentions": [],
+        "symbols": [],
+        "media": [
+            {
+                "display_url": "pic.x.com/ktGDnwol99",
+                "expanded_url": "https://x.com/nmatares/status/1925198944029864388/video/1",
+                "indices": [
+                    147,
+                    170
+                ],
+                "url": "https://t.co/ktGDnwol99"
+            }
+        ]
+    },
+    "id_str": "1925206104679809432",
+    "text": "Less than 24 hours since Google dropped Veo3 and people are already creating wild stuff!\n\n13 insane examples 🧵👇\n\n1. A giraffe riding a bike in NYC\nhttps://t.co/ktGDnwol99",
+    "user": {
+        "id_str": "119185333",
+        "name": "TechHalla",
+        "profile_image_url_https": "https://pbs.twimg.com/profile_images/1625034521174331392/tzX1TLet_normal.jpg",
+        "screen_name": "techhalla",
+        "verified": false,
+        "is_blue_verified": true,
+        "profile_image_shape": "Circle"
+    },
+    "edit_control": {
+        "edit_tweet_ids": [
+            "1925206104679809432"
+        ],
+        "editable_until_msecs": "1747843478000",
+        "is_edit_eligible": false,
+        "edits_remaining": "5"
+    },
+    "mediaDetails": [
+        {
+            "additional_media_info": {},
+            "display_url": "pic.x.com/ktGDnwol99",
+            "expanded_url": "https://x.com/nmatares/status/1925198944029864388/video/1",
+            "ext_media_availability": {
+                "status": "Available"
+            },
+            "indices": [
+                147,
+                170
+            ],
+            "media_url_https": "https://pbs.twimg.com/amplify_video_thumb/1925198864753287168/img/9DlGsuXEMEsZUqT9.jpg",
+            "original_info": {
+                "height": 720,
+                "width": 1280,
+                "focus_rects": []
+            },
+            "sizes": {
+                "large": {
+                    "h": 720,
+                    "resize": "fit",
+                    "w": 1280
+                },
+                "medium": {
+                    "h": 675,
+                    "resize": "fit",
+                    "w": 1200
+                },
+                "small": {
+                    "h": 383,
+                    "resize": "fit",
+                    "w": 680
+                },
+                "thumb": {
+                    "h": 150,
+                    "resize": "crop",
+                    "w": 150
+                }
+            },
+            "type": "video",
+            "url": "https://t.co/ktGDnwol99",
+            "video_info": {
+                "aspect_ratio": [
+                    16,
+                    9
+                ],
+                "duration_millis": 8010,
+                "variants": [
+                    {
+                        "content_type": "application/x-mpegURL",
+                        "url": "https://video.twimg.com/amplify_video/1925198864753287168/pl/VZjBoKG3rDpfNHde.m3u8?tag=14"
+                    },
+                    {
+                        "bitrate": 288000,
+                        "content_type": "video/mp4",
+                        "url": "https://video.twimg.com/amplify_video/1925198864753287168/vid/avc1/480x270/n4lcgEPH8f5Z3KI-.mp4?tag=14"
+                    },
+                    {
+                        "bitrate": 832000,
+                        "content_type": "video/mp4",
+                        "url": "https://video.twimg.com/amplify_video/1925198864753287168/vid/avc1/640x360/Xo9CPCLsLNQZrPke.mp4?tag=14"
+                    },
+                    {
+                        "bitrate": 2176000,
+                        "content_type": "video/mp4",
+                        "url": "https://video.twimg.com/amplify_video/1925198864753287168/vid/avc1/1280x720/hlZi2mHoQlFHNv5G.mp4?tag=14"
+                    }
+                ]
+            }
+        }
+    ],
+    "photos": [],
+    "video": {
+        "aspectRatio": [
+            16,
+            9
+        ],
+        "contentType": "media_entity",
+        "durationMs": 8010,
+        "mediaAvailability": {
+            "status": "available"
+        },
+        "poster": "https://pbs.twimg.com/amplify_video_thumb/1925198864753287168/img/9DlGsuXEMEsZUqT9.jpg",
+        "variants": [
+            {
+                "type": "application/x-mpegURL",
+                "src": "https://video.twimg.com/amplify_video/1925198864753287168/pl/VZjBoKG3rDpfNHde.m3u8?tag=14"
+            },
+            {
+                "type": "video/mp4",
+                "src": "https://video.twimg.com/amplify_video/1925198864753287168/vid/avc1/480x270/n4lcgEPH8f5Z3KI-.mp4?tag=14"
+            },
+            {
+                "type": "video/mp4",
+                "src": "https://video.twimg.com/amplify_video/1925198864753287168/vid/avc1/640x360/Xo9CPCLsLNQZrPke.mp4?tag=14"
+            },
+            {
+                "type": "video/mp4",
+                "src": "https://video.twimg.com/amplify_video/1925198864753287168/vid/avc1/1280x720/hlZi2mHoQlFHNv5G.mp4?tag=14"
+            }
+        ],
+        "videoId": {
+            "type": "tweet",
+            "id": "1925206104679809432"
+        },
+        "viewCount": 0
+    },
+    "conversation_count": 289,
+    "news_action_type": "conversation",
+    "isEdited": false,
+    "isStaleEdit": false
+}

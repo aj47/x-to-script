@@ -7,9 +7,11 @@ A Python CLI tool to download videos from X.com (Twitter) threads.
 Given a tweet URL, this tool:
 1. Downloads the original tweet and up to 50 replies
 2. Identifies if the replies form a thread (consecutive replies from the original author)
-3. Downloads videos from the thread
+3. Extracts and saves text data from the tweets
+4. Downloads videos from the thread
 
-Videos are saved with the naming convention `author_tweetID.mp4`.
+- Videos are saved with the naming convention `author_tweetID.mp4`
+- Text data is saved as JSON files with the naming convention `author_tweetID_thread.json`
 
 ## Requirements
 
@@ -69,8 +71,25 @@ python main.py https://twitter.com/username/status/123456789 --reply-limit 100 -
 
 1. **Fetching Tweets**: Uses the Apify API to fetch the original tweet and its replies.
 2. **Thread Identification**: Identifies if the replies form a thread by checking if consecutive replies are from the original author.
-3. **Video Extraction**: Extracts video URLs from the tweets in the thread.
-4. **Video Download**: Downloads the videos using yt-dlp and saves them with the naming convention `author_tweetID.mp4`.
+3. **Text Extraction**: Extracts text content and metadata from the tweets in the thread.
+4. **Text Storage**: Saves the extracted text data as JSON files in the `tweet_text` subdirectory.
+5. **Video Extraction**: Extracts video URLs from the tweets in the thread.
+6. **Video Download**: Downloads the videos using yt-dlp and saves them with the naming convention `author_tweetID.mp4`.
+
+## Text Data Format
+
+The text data is saved as a JSON file containing an array of tweet objects. Each tweet object includes:
+
+- `tweet_id`: The ID of the tweet
+- `author`: The screen name of the tweet author
+- `text`: The text content of the tweet
+- `timestamp`: The creation timestamp of the tweet
+- `urls`: Array of URLs included in the tweet
+- `hashtags`: Array of hashtags used in the tweet
+- `mentions`: Array of user mentions in the tweet
+- `is_reply`: Boolean indicating if the tweet is a reply
+- `reply_to`: The screen name of the user being replied to (if applicable)
+- `reply_to_id`: The ID of the tweet being replied to (if applicable)
 
 ## License
 

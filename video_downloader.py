@@ -1,106 +1,170 @@
 """
-Video downloader module for the x-thread-dl tool.
-Handles downloading videos from X.com (Twitter) using yt-dlp.
+Media downloader module for the x-thread-dl tool.
+Handles downloading videos from X.com (Twitter) using yt-dlp
+and saving text content.
 """
 
 import os
+import json
 import logging
 import yt_dlp
-from typing import Optional
+from typing import Optional, Dict, List, Any
+
+# Import configuration
+import config # To get DEFAULT_OUTPUT_DIR
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.INFO, # Changed to INFO
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger('x-thread-dl.video_downloader')
+logger = logging.getLogger('x-thread-dl.media_downloader') # Renamed logger
 
-def download_video(video_url: str, author_screen_name: str, tweet_id: str, output_dir: str) -> Optional[str]:
+def _ensure_dir_exists(dir_path: str):
+    """Ensure directory exists, creating it if necessary."""
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+        logger.debug(f"Created directory: {dir_path}")
+
+def _save_json_content(data: Dict[str, Any], file_path: str):
+    """Saves dictionary data as JSON to the specified file path."""
+    try:
+        _ensure_dir_exists(os.path.dirname(file_path))
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        logger.info(f"Successfully saved JSON content to {file_path}")
+    except Exception as e:
+        logger.error(f"Error saving JSON content to {file_path}: {str(e)}", exc_info=True)
+
+def download_video_content(video_url: str, video_id: str, output_dir: str) -> Optional[str]:
     """
-    Download a video from X.com (Twitter) using yt-dlp.
-    
+    Download a single video using yt-dlp.
+    The filename will be {video_id}.mp4.
+
     Args:
-        video_url (str): The URL of the video to download
-        author_screen_name (str): The screen name of the tweet author
-        tweet_id (str): The ID of the tweet
-        output_dir (str): The directory to save the video to
+        video_url (str): The URL of the video to download.
+        video_id (str): The ID of the tweet/reply containing the video (used for filename).
+        output_dir (str): The directory to save the video to.
         
     Returns:
-        Optional[str]: The path to the downloaded video or None if download failed
+        Optional[str]: The path to the downloaded video or None if download failed.
     """
     try:
-        # Ensure output directory exists
-        os.makedirs(output_dir, exist_ok=True)
+        _ensure_dir_exists(output_dir)
         
-        # Construct the output filename
-        output_filename = f"{author_screen_name}_{tweet_id}.mp4"
+        output_filename = f"{video_id}.mp4"
         output_path = os.path.join(output_dir, output_filename)
         
         logger.info(f"Downloading video from {video_url} to {output_path}")
         
-        # Configure yt-dlp options
         ydl_opts = {
-            'format': 'best[ext=mp4]/best',  # Prefer MP4 format
+            'format': 'best[ext=mp4]/best',
             'outtmpl': output_path,
-            'quiet': False,
+            'quiet': False, # Set to False to see yt-dlp output, True for silent
             'no_warnings': False,
-            'ignoreerrors': True,  # Continue on download errors
-            'nooverwrites': False,  # Overwrite existing files
-            'retries': 5,  # Retry a few times on connection errors
-            'logger': logger,
+            'ignoreerrors': True,
+            'nooverwrites': False, # Allow overwriting for retries or updates
+            'retries': 5,
+            'logger': logger, # Pass our logger to yt-dlp
+            # Consider adding user agent if facing blocks:
+            # 'http_headers': {'User-Agent': 'Mozilla/5.0 ...'}
         }
         
-        # Download the video
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([video_url])
         
-        # Check if the file was downloaded successfully
         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
             logger.info(f"Successfully downloaded video to {output_path}")
             return output_path
         else:
-            logger.warning(f"Video file not found or empty: {output_path}")
+            # yt-dlp with ignoreerrors might not raise an exception but still fail
+            logger.warning(f"Video file not found or empty after download attempt: {output_path}")
+            # Check if a .part file exists, indicating an interrupted download
+            part_file = output_path + ".part"
+            if os.path.exists(part_file):
+                logger.warning(f"Partial download file found: {part_file}. Download may have been interrupted.")
             return None
             
     except Exception as e:
-        logger.error(f"Error downloading video from {video_url}: {str(e)}", exc_info=True)
+        # This catches errors during yt-dlp instantiation or other unexpected issues
+        logger.error(f"Error downloading video {video_id} from {video_url}: {str(e)}", exc_info=True)
         return None
 
-def download_thread_videos(thread_videos: list, output_dir: str) -> list:
+def save_parsed_thread_data(parsed_data: Dict[str, Any], base_output_dir: str = config.DEFAULT_OUTPUT_DIR) -> List[str]:
     """
-    Download videos from a thread.
-    
+    Saves all parsed thread data (text and videos) according to the structured format:
+    output/{user_screen_name}/{thread_id}/thread_text.json
+    output/{user_screen_name}/{thread_id}/videos/{tweet_id}.mp4
+    output/{user_screen_name}/{thread_id}/replies/{reply_id}/reply_text.json
+    output/{user_screen_name}/{thread_id}/replies/{reply_id}/videos/{reply_id}.mp4
+
     Args:
-        thread_videos (list): List of dictionaries containing author_screen_name, tweet_id, and video_url
-        output_dir (str): The directory to save the videos to
+        parsed_data (Dict[str, Any]): The structured data from thread_parser.
+        base_output_dir (str): The base directory for all output (e.g., "output").
         
     Returns:
-        list: List of paths to the downloaded videos
+        List[str]: List of paths to all successfully saved/downloaded files.
     """
-    downloaded_videos = []
+    if not parsed_data:
+        logger.warning("No parsed data provided to save.")
+        return []
+
+    user_screen_name = parsed_data.get("user_screen_name", "unknown_user")
+    thread_id = parsed_data.get("thread_id", "unknown_thread")
+
+    # Path for the current thread: output/{user_screen_name}/{thread_id}/
+    thread_path = os.path.join(base_output_dir, user_screen_name, thread_id)
+    _ensure_dir_exists(thread_path)
+
+    saved_files = []
+
+    # 1. Save main thread text content
+    thread_text_content = parsed_data.get("thread_text_content")
+    if thread_text_content:
+        thread_text_path = os.path.join(thread_path, "thread_text.json")
+        _save_json_content(thread_text_content, thread_text_path)
+        saved_files.append(thread_text_path)
+
+    # 2. Download main thread videos
+    thread_videos_path = os.path.join(thread_path, "videos")
+    for video_info in parsed_data.get("thread_videos", []):
+        video_url = video_info.get("video_url")
+        # Use main thread_id for its videos, as video_info.tweet_id is the same
+        video_id_for_filename = thread_id 
+        if video_url and video_id_for_filename:
+            downloaded_path = download_video_content(video_url, video_id_for_filename, thread_videos_path)
+            if downloaded_path:
+                saved_files.append(downloaded_path)
     
-    if not thread_videos:
-        logger.warning("No videos to download")
-        return downloaded_videos
-    
-    logger.info(f"Downloading {len(thread_videos)} videos from thread")
-    
-    for i, video_info in enumerate(thread_videos, 1):
-        video_url = video_info.get('video_url')
-        author_screen_name = video_info.get('author_screen_name')
-        tweet_id = video_info.get('tweet_id')
-        
-        if not all([video_url, author_screen_name, tweet_id]):
-            logger.warning(f"Missing required information for video {i}")
+    # 3. Process replies
+    replies_base_path = os.path.join(thread_path, "replies")
+    for reply_info in parsed_data.get("replies", []):
+        reply_id = reply_info.get("reply_id")
+        if not reply_id:
+            logger.warning(f"Skipping reply due to missing ID: {str(reply_info)[:100]}")
             continue
+
+        # Path for the current reply: .../{thread_id}/replies/{reply_id}/
+        current_reply_path = os.path.join(replies_base_path, reply_id)
+        _ensure_dir_exists(current_reply_path)
+
+        # 3a. Save reply text content
+        reply_text_content = reply_info.get("reply_text_content")
+        if reply_text_content:
+            reply_text_path = os.path.join(current_reply_path, "reply_text.json")
+            _save_json_content(reply_text_content, reply_text_path)
+            saved_files.append(reply_text_path)
         
-        logger.info(f"Downloading video {i}/{len(thread_videos)}: {author_screen_name}_{tweet_id}")
-        
-        video_path = download_video(video_url, author_screen_name, tweet_id, output_dir)
-        
-        if video_path:
-            downloaded_videos.append(video_path)
-    
-    logger.info(f"Downloaded {len(downloaded_videos)}/{len(thread_videos)} videos")
-    
-    return downloaded_videos
+        # 3b. Download reply videos
+        reply_videos_path = os.path.join(current_reply_path, "videos")
+        for video_info in reply_info.get("reply_videos", []):
+            video_url = video_info.get("video_url")
+            # video_info.tweet_id here is actually the reply_id
+            video_id_for_filename = video_info.get("tweet_id", reply_id) 
+            if video_url and video_id_for_filename:
+                downloaded_path = download_video_content(video_url, video_id_for_filename, reply_videos_path)
+                if downloaded_path:
+                    saved_files.append(downloaded_path)
+                    
+    logger.info(f"Finished processing and saving data for thread {user_screen_name}/{thread_id}. Total files saved/downloaded: {len(saved_files)}")
+    return saved_files

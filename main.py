@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-x-thread-dl: A CLI tool to download videos from X.com (Twitter) threads.
+x-thread-dl: A CLI tool to download media (videos and text) from X.com (Twitter) threads and their replies.
 
 Given a tweet URL, this tool:
-1. Downloads the original tweet and up to 50 replies
-2. Identifies if the replies form a thread (consecutive replies from the original author)
-3. Downloads videos from the thread
+1. Fetches the original tweet and its replies.
+2. Parses the data to extract user information, thread ID, reply IDs, text content, and video URLs.
+3. Saves the text content as JSON files and downloads videos into a structured directory:
+   output/{user_screen_name}/{thread_id}/thread_text.json
+   output/{user_screen_name}/{thread_id}/videos/{thread_id}.mp4
+   output/{user_screen_name}/{thread_id}/replies/{reply_id}/reply_text.json
+   output/{user_screen_name}/{thread_id}/replies/{reply_id}/videos/{reply_id}.mp4
 """
 
 import os
@@ -18,12 +22,12 @@ from typing import Optional
 # Import local modules
 import config
 from scraper import Scraper
-import thread_parser
-import video_downloader
+from thread_parser import parse_tweet_and_replies_data # Updated import
+from video_downloader import save_parsed_thread_data  # Updated import, was video_downloader
 
 # Set up logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.INFO, # Default to INFO
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger('x-thread-dl')
@@ -31,95 +35,95 @@ logger = logging.getLogger('x-thread-dl')
 @click.command()
 @click.argument('tweet_url', required=True)
 @click.option('--reply-limit', '-r', default=config.DEFAULT_REPLY_LIMIT, 
+              type=int,
               help=f'Maximum number of replies to fetch (default: {config.DEFAULT_REPLY_LIMIT})')
 @click.option('--output-dir', '-o', default=config.DEFAULT_OUTPUT_DIR,
-              help=f'Directory to save downloaded videos (default: {config.DEFAULT_OUTPUT_DIR})')
+              type=click.Path(),
+              help=f'Base directory to save downloaded content (default: {config.DEFAULT_OUTPUT_DIR})')
 @click.option('--apify-token', '-t', default=None,
               help='Apify API token (can also be set as APIFY_API_TOKEN environment variable or in a .env file)')
-@click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose (DEBUG level) output')
 def main(tweet_url: str, reply_limit: int, output_dir: str, apify_token: Optional[str], verbose: bool):
     """
-    Download videos from X.com (Twitter) threads.
+    Download media (videos and text) from X.com (Twitter) threads and replies.
     
-    TWEET_URL: The URL of the tweet to download videos from.
+    TWEET_URL: The URL of the initial tweet in the thread.
     """
-    # Set logging level based on verbose flag
     if verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
-        logger.debug("Verbose mode enabled")
-    
-    # Validate tweet URL
+        logging.getLogger().setLevel(logging.DEBUG) # Set root logger to DEBUG
+        for handler in logging.getLogger().handlers: # Ensure all handlers also respect DEBUG
+            handler.setLevel(logging.DEBUG)
+        logger.debug("Verbose mode enabled. All loggers set to DEBUG.")
+    else:
+        # Ensure other loggers (like apify_client) are not overly verbose if not in verbose mode
+        logging.getLogger("apify_client").setLevel(logging.WARNING)
+        logging.getLogger("yt_dlp").setLevel(logging.WARNING)
+
+
     if not ('twitter.com' in tweet_url or 'x.com' in tweet_url):
-        logger.error(f"Invalid tweet URL: {tweet_url}")
+        logger.error(f"Invalid tweet URL: {tweet_url}. Must contain 'twitter.com' or 'x.com'.")
         sys.exit(1)
     
-    # Use the provided Apify token or the one from config
-    api_token = apify_token or config.APIFY_API_TOKEN
-    if not api_token:
+    effective_api_token = apify_token or config.APIFY_API_TOKEN
+    if not effective_api_token:
         logger.error("No Apify API token provided. Set it with --apify-token, in a .env file, or as APIFY_API_TOKEN environment variable.")
         sys.exit(1)
     
-    # Create the output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Run the main async function
-    asyncio.run(process_tweet(tweet_url, reply_limit, output_dir, api_token))
+    # The base output directory is passed; specific subdirs are created by save_parsed_thread_data
+    # os.makedirs(output_dir, exist_ok=True) # This will be handled by save_parsed_thread_data's helpers
 
-async def process_tweet(tweet_url: str, reply_limit: int, output_dir: str, api_token: str):
+    asyncio.run(process_thread_and_replies(tweet_url, reply_limit, output_dir, effective_api_token))
+
+async def process_thread_and_replies(tweet_url: str, reply_limit: int, base_output_dir: str, api_token: str):
     """
-    Process a tweet URL to download thread videos.
-    
-    Args:
-        tweet_url (str): The URL of the tweet to process
-        reply_limit (int): Maximum number of replies to fetch
-        output_dir (str): Directory to save downloaded videos
-        api_token (str): Apify API token
+    Process a tweet URL to fetch, parse, and save the thread and its replies.
     """
     try:
-        logger.info(f"Processing tweet URL: {tweet_url}")
+        logger.info(f"Processing URL: {tweet_url}")
         
-        # Initialize the scraper
-        scraper = Scraper(api_token=api_token)
+        scraper_instance = Scraper(api_token=api_token)
         
-        # Fetch the tweet and its replies
-        logger.info(f"Fetching tweet and up to {reply_limit} replies...")
-        data = await scraper.fetch_tweet_and_replies(tweet_url, reply_limit)
+        logger.info(f"Fetching main tweet and up to {reply_limit} replies...")
+        scraped_content = await scraper_instance.fetch_tweet_and_replies(tweet_url, reply_limit)
         
-        tweet = data.get('tweet')
-        replies = data.get('replies', [])
+        main_tweet_data = scraped_content.get('tweet')
+        replies_list_data = scraped_content.get('replies', []) # Default to empty list if None
         
-        if not tweet:
-            logger.error("Failed to fetch tweet data")
+        if not main_tweet_data:
+            logger.error("Failed to fetch main tweet data. Aborting.")
             sys.exit(1)
         
-        logger.info(f"Successfully fetched tweet and {len(replies)} replies")
+        logger.info(f"Successfully fetched main tweet and {len(replies_list_data)} replies.")
         
-        # Identify thread videos
-        logger.info("Identifying thread videos...")
-        thread_videos = thread_parser.identify_thread_videos(tweet, replies, scraper)
+        logger.info("Parsing fetched data...")
+        # Pass the scraper instance for its utility functions like extract_video_url
+        parsed_data = parse_tweet_and_replies_data(main_tweet_data, replies_list_data, scraper_instance)
         
-        if not thread_videos:
-            logger.warning("No videos found in the thread")
-            sys.exit(0)
-        
-        logger.info(f"Found {len(thread_videos)} videos in the thread")
-        
-        # Download thread videos
-        logger.info(f"Downloading {len(thread_videos)} videos to {output_dir}...")
-        downloaded_videos = video_downloader.download_thread_videos(thread_videos, output_dir)
-        
-        if not downloaded_videos:
-            logger.warning("Failed to download any videos")
+        if not parsed_data:
+            logger.error("Failed to parse tweet and reply data. Aborting.")
             sys.exit(1)
         
-        logger.info(f"Successfully downloaded {len(downloaded_videos)} videos:")
-        for video_path in downloaded_videos:
-            logger.info(f"  - {os.path.basename(video_path)}")
+        user_name = parsed_data.get("user_screen_name", "unknown_user")
+        tid = parsed_data.get("thread_id", "unknown_thread")
+        logger.info(f"Data parsed for user '{user_name}', thread '{tid}'.")
+
+        logger.info(f"Saving content to base directory: {base_output_dir}")
+        saved_media_files = save_parsed_thread_data(parsed_data, base_output_dir)
         
-        logger.info(f"Videos saved to: {os.path.abspath(output_dir)}")
+        if not saved_media_files:
+            logger.warning("No files were saved. This might be due to no content found or errors during saving/downloading.")
+            # Decide if this is an error state or acceptable (e.g., thread with no videos/text worth saving)
+            # For now, let's consider it a non-fatal warning if parsing was okay.
+        else:
+            logger.info(f"Successfully saved {len(saved_media_files)} file(s):")
+            for file_path in saved_media_files:
+                logger.info(f"  - {file_path}")
+            
+            final_output_location = os.path.join(base_output_dir, user_name, tid)
+            logger.info(f"All content for this thread saved under: {os.path.abspath(final_output_location)}")
         
     except Exception as e:
-        logger.error(f"Error processing tweet: {str(e)}", exc_info=True)
+        logger.error(f"An critical error occurred during processing: {str(e)}", exc_info=True)
         sys.exit(1)
 
 if __name__ == '__main__':
