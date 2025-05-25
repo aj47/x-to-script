@@ -1,0 +1,36 @@
+{
+  "hook": {
+    "text": "Wait, did NASA just get exposed? 🤯 This leaked map from 2025 is about to show you what they're NOT telling us...",
+    "duration_seconds": 15,
+    "visual_cues": "Zoom in on mysterious map, add suspenseful overlay effect, include 🤫 emoji animation"
+  },
+  "intro": {
+    "text": "While everyone's distracted by mainstream media, secret cartography projects are revealing hidden zones and restricted areas that weren't supposed to be public. Let me break this down...",
+    "duration_seconds": 20,
+    "visual_cues": "Split screen showing mainstream news vs mysterious maps, use highlighting effects on key areas"
+  },
+  "explainer": {
+    "text": "These classified maps show undisclosed regions that could change everything we know about our world. NASA's involvement with VACUUM project? That's just the tip of the iceberg. The real question is: what's in these restricted zones they don't want us to see? 👀",
+    "duration_seconds": 25,
+    "visual_cues": "Rapid sequence of map overlays, red circles highlighting restricted zones, dramatic zoom effects on key areas"
+  },
+  "metadata": {
+    "total_duration": 60,
+    "key_topics": [
+      "Hidden Maps",
+      "NASA Secrets",
+      "Restricted Zones",
+      "2025 Predictions",
+      "Government Secrets"
+    ],
+    "suggested_hashtags": [
+      "#ConspiracyTok",
+      "#HiddenTruth",
+      "#NASA",
+      "#SecretMaps",
+      "#LeakedInfo2025"
+    ],
+    "engagement_potential": "high",
+    "target_audience": "Conspiracy enthusiasts, truth seekers, young adults interested in government secrets and hidden information"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "hook": {
+    "text": "Want to know why everyone's freaking out about the new Cline update? *dramatic pause* Version 3.16 just dropped and it's about to change your workflow game forever! 🤯",
+    "duration_seconds": 15,
+    "visual_cues": "Screen recording of Cline interface with zoom transitions, text overlay with '3.16' appearing dramatically"
+  },
+  "intro": {
+    "text": "Listen up tech fam! If you're tired of messy workflows and complicated processes, this update is literally everything you've been waiting for. Let me show you why everyone's talking about it.",
+    "duration_seconds": 20,
+    "visual_cues": "Split screen showing before/after workflow examples, pointing gestures to highlight key features"
+  },
+  "explainer": {
+    "text": "Cline just dropped some INSANE new workflow features that'll make your life 10x easier. *zoom in* We're talking seamless integration, faster processing, and tools that actually make sense! Plus, the interface is cleaner than your ex's excuses! 💅",
+    "duration_seconds": 25,
+    "visual_cues": "Quick cuts between feature demonstrations, on-screen text highlighting key points, reaction shots"
+  },
+  "metadata": {
+    "total_duration": 60,
+    "key_topics": [
+      "Software Update",
+      "Productivity Tools",
+      "Workflow Optimization",
+      "Tech News"
+    ],
+    "suggested_hashtags": [
+      "#ClineUpdate",
+      "#TechTok",
+      "#ProductivityHacks",
+      "#WorkflowTips",
+      "#TechNews"
+    ],
+    "engagement_potential": "high",
+    "target_audience": "Tech-savvy professionals, productivity enthusiasts, software users aged 18-35 interested in optimization and efficiency"
+  }
+}

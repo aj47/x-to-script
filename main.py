@@ -24,6 +24,7 @@ import config
 from scraper import Scraper
 from thread_parser import parse_tweet_and_replies_data # Updated import
 from video_downloader import save_parsed_thread_data  # Updated import, was video_downloader
+from script_generator import ScriptGenerator
 
 # Set up logging
 logging.basicConfig(
@@ -44,7 +45,13 @@ logger = logging.getLogger('x-thread-dl')
               help='Apify API token (can also be set as APIFY_API_TOKEN environment variable or in a .env file)')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose (DEBUG level) output')
 @click.option('--list-formats', is_flag=True, help='List available video formats before downloading')
-def main(tweet_url: str, reply_limit: int, output_dir: str, apify_token: Optional[str], verbose: bool, list_formats: bool):
+@click.option('--skip-script', is_flag=True, help='Skip automatic TikTok script generation')
+@click.option('--openrouter-key', '-k', default=None,
+              help='OpenRouter API key for script generation (can also be set as OPENROUTER_API_KEY environment variable)')
+@click.option('--model', '-m', default=None,
+              help='OpenRouter model to use for script generation (default: claude-3.5-sonnet)')
+def main(tweet_url: str, reply_limit: int, output_dir: str, apify_token: Optional[str], verbose: bool, list_formats: bool,
+         skip_script: bool, openrouter_key: Optional[str], model: Optional[str]):
     """
     Download media (videos and text) from X.com (Twitter) threads and replies.
 
@@ -73,11 +80,15 @@ def main(tweet_url: str, reply_limit: int, output_dir: str, apify_token: Optiona
     # The base output directory is passed; specific subdirs are created by save_parsed_thread_data
     # os.makedirs(output_dir, exist_ok=True) # This will be handled by save_parsed_thread_data's helpers
 
-    asyncio.run(process_thread_and_replies(tweet_url, reply_limit, output_dir, effective_api_token, list_formats))
+    asyncio.run(process_thread_and_replies(tweet_url, reply_limit, output_dir, effective_api_token, list_formats,
+                                         skip_script, openrouter_key, model))
 
-async def process_thread_and_replies(tweet_url: str, reply_limit: int, base_output_dir: str, api_token: str, list_formats: bool = False):
+async def process_thread_and_replies(tweet_url: str, reply_limit: int, base_output_dir: str, api_token: str,
+                                   list_formats: bool = False, skip_script: bool = False,
+                                   openrouter_key: Optional[str] = None, model: Optional[str] = None):
     """
     Process a tweet URL to fetch, parse, and save the thread and its replies.
+    Automatically generates TikTok scripts unless skip_script is True.
     """
     try:
         logger.info(f"Processing URL: {tweet_url}")
@@ -123,8 +134,96 @@ async def process_thread_and_replies(tweet_url: str, reply_limit: int, base_outp
             final_output_location = os.path.join(base_output_dir, user_name, tid)
             logger.info(f"All content for this thread saved under: {os.path.abspath(final_output_location)}")
 
+            # Automatically generate TikTok script unless skipped
+            if not skip_script:
+                await generate_tiktok_script_automatically(final_output_location, openrouter_key, model)
+
     except Exception as e:
         logger.error(f"An critical error occurred during processing: {str(e)}", exc_info=True)
+        sys.exit(1)
+
+async def generate_tiktok_script_automatically(thread_dir: str, openrouter_key: Optional[str] = None,
+                                             model: Optional[str] = None):
+    """
+    Automatically generate TikTok script from thread data.
+
+    Args:
+        thread_dir: Directory containing the thread data
+        openrouter_key: OpenRouter API key
+        model: Model to use for generation
+    """
+    try:
+        # Look for thread_text.json file
+        thread_json_path = os.path.join(thread_dir, "thread_text.json")
+
+        if not os.path.exists(thread_json_path):
+            logger.warning(f"No thread_text.json found in {thread_dir}, skipping script generation")
+            return
+
+        logger.info("🎬 Generating TikTok script from thread data...")
+
+        # Initialize script generator
+        try:
+            generator = ScriptGenerator(api_key=openrouter_key, model=model)
+        except ValueError as e:
+            logger.warning(f"⚠️ Script generation skipped: {str(e)}")
+            logger.info("💡 To enable script generation, set OPENROUTER_API_KEY environment variable")
+            return
+
+        # Generate script in the same directory as the thread
+        script_output_dir = os.path.join(thread_dir, "scripts")
+        result = await generator.process_thread_file(thread_json_path, script_output_dir)
+
+        if result:
+            logger.info(f"✅ TikTok script generated: {result}")
+        else:
+            logger.warning("⚠️ Failed to generate TikTok script")
+
+    except Exception as e:
+        logger.warning(f"⚠️ Script generation failed: {str(e)}")
+        logger.debug("Script generation error details:", exc_info=True)
+
+@click.command()
+@click.argument('json_file_path', required=True, type=click.Path(exists=True))
+@click.option('--output-dir', '-o', default=None,
+              type=click.Path(),
+              help='Directory to save generated scripts (default: generated_scripts)')
+@click.option('--model', '-m', default=None,
+              help='OpenRouter model to use for generation (default: claude-3.5-sonnet)')
+@click.option('--openrouter-key', '-k', default=None,
+              help='OpenRouter API key (can also be set as OPENROUTER_API_KEY environment variable)')
+@click.option('--verbose', '-v', is_flag=True, help='Enable verbose (DEBUG level) output')
+def generate_script(json_file_path: str, output_dir: Optional[str], model: Optional[str],
+                   openrouter_key: Optional[str], verbose: bool):
+    """
+    Generate a TikTok video script from scraped Twitter thread data.
+
+    JSON_FILE_PATH: Path to the JSON file containing scraped thread data.
+    """
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+        for handler in logging.getLogger().handlers:
+            handler.setLevel(logging.DEBUG)
+        logger.debug("Verbose mode enabled for script generation.")
+
+    try:
+        # Initialize script generator
+        generator = ScriptGenerator(api_key=openrouter_key, model=model)
+
+        # Process the thread file
+        result = asyncio.run(generator.process_thread_file(json_file_path, output_dir))
+
+        if result:
+            logger.info(f"Successfully generated TikTok script: {result}")
+            click.echo(f"✅ Script generated successfully: {result}")
+        else:
+            logger.error("Failed to generate script")
+            click.echo("❌ Failed to generate script. Check logs for details.")
+            sys.exit(1)
+
+    except Exception as e:
+        logger.error(f"Error during script generation: {str(e)}", exc_info=True)
+        click.echo(f"❌ Error: {str(e)}")
         sys.exit(1)
 
 if __name__ == '__main__':

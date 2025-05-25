@@ -1,0 +1,35 @@
+{
+  "hook": {
+    "text": "Tired of messy workflows? *pause* What if I told you there's a game-changing update that's about to transform how you work? 👀",
+    "duration_seconds": 15,
+    "visual_cues": "Screen recording of cluttered desktop/tools, transition to clean, organized interface with Cline v3.16 logo"
+  },
+  "intro": {
+    "text": "Cline just dropped version 3.16, and it's not just another update. We're talking about a complete workflow revolution that's got tech Twitter buzzing! Let me show you why everyone's freaking out...",
+    "duration_seconds": 20,
+    "visual_cues": "Split screen showing before/after workflow scenarios, animated text overlays highlighting '3.16'"
+  },
+  "explainer": {
+    "text": "The new workflows feature is like having a productivity superpower! *zoom in* Create custom automations, streamline your tasks, and watch your efficiency skyrocket. The best part? It's all packed into one sleek interface that just makes sense. No more jumping between tools - this is the future of getting things done! 🚀",
+    "duration_seconds": 25,
+    "visual_cues": "Quick demo clips of workflow features, animated icons showing automation process, screen recordings of interface"
+  },
+  "metadata": {
+    "total_duration": 60,
+    "key_topics": [
+      "productivity tools",
+      "workflow automation",
+      "software updates",
+      "tech efficiency"
+    ],
+    "suggested_hashtags": [
+      "#ProductivityHacks",
+      "#TechTips",
+      "#WorkflowAutomation",
+      "#ClineUpdate",
+      "#ProductivityTikTok"
+    ],
+    "engagement_potential": "high",
+    "target_audience": "Tech-savvy professionals, productivity enthusiasts, digital creators aged 18-35 who are interested in optimization tools and workflow efficiency"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "hook": {
+    "text": "Want to automate your tech workflow like a pro? This new tool is BLOWING UP in the dev community and here's why... 🤯",
+    "duration_seconds": 15,
+    "visual_cues": "Screen recording of workflow automation in action, quick cuts between before/after scenarios, emphasis text overlay"
+  },
+  "intro": {
+    "text": "Meet Cline v3.16 - it's like having an AI assistant that understands your commands in plain English! No more complex coding required. The tech community is literally freaking out over this update. 🚀",
+    "duration_seconds": 20,
+    "visual_cues": "Split screen showing natural language commands on one side and automated actions on other, user reactions screenshots floating"
+  },
+  "explainer": {
+    "text": "Here's the game-changer: You write simple instructions in a Markdown file, and Cline turns them into powerful automation scripts! 💡 You can use natural language, built-in tools, or CLI commands - whatever works for you. The best part? It's available right now and the updates are coming out CRAZY fast! *Shows download link*",
+    "duration_seconds": 25,
+    "visual_cues": "Screen recording of Markdown file being written, transition to automation running, excitement emphasis on key features"
+  },
+  "metadata": {
+    "total_duration": 60,
+    "key_topics": [
+      "workflow automation",
+      "tech tools",
+      "productivity",
+      "coding",
+      "AI assistance"
+    ],
+    "suggested_hashtags": [
+      "#TechTok",
+      "#CodingTips",
+      "#ProductivityHack",
+      "#DevTools",
+      "#Automation"
+    ],
+    "engagement_potential": "high",
+    "target_audience": "Tech enthusiasts, developers, productivity seekers, and anyone interested in automation tools"
+  }
+}
