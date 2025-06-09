@@ -58,7 +58,8 @@ def download_video_content(video_url: str, video_id: str, output_dir: str) -> Op
         logger.info(f"Downloading video from {video_url} to {output_path}")
         
         ydl_opts = {
-            'format': 'best[ext=mp4]/best',
+            # Prioritize highest quality MP4, then highest quality overall
+            'format': 'best[ext=mp4][height>=2160]/best[ext=mp4][height>=1080]/best[ext=mp4]/best',
             'outtmpl': output_path,
             'quiet': False, # Set to False to see yt-dlp output, True for silent
             'no_warnings': False,
@@ -71,6 +72,18 @@ def download_video_content(video_url: str, video_id: str, output_dir: str) -> Op
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # Get info about the video before downloading to log quality
+            try:
+                info = ydl.extract_info(video_url, download=False)
+                if info:
+                    format_info = info.get('format', 'unknown format')
+                    resolution = f"{info.get('width', '?')}x{info.get('height', '?')}"
+                    filesize = info.get('filesize') or info.get('filesize_approx')
+                    size_mb = f"{filesize / (1024*1024):.1f}MB" if filesize else "unknown size"
+                    logger.info(f"Downloading video: {resolution} ({format_info}) - {size_mb}")
+            except Exception as e:
+                logger.warning(f"Could not extract video info for logging: {e}")
+
             ydl.download([video_url])
         
         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:

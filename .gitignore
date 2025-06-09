@@ -41,3 +41,6 @@ downloaded_videos/
 # OS specific files
 .DS_Store
 Thumbs.db
+
+
+output/

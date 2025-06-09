@@ -179,54 +179,98 @@ class Scraper:
     
     def extract_video_url(self, tweet_data: Dict[str, Any]) -> Optional[str]:
         """
-        Extract the video URL from tweet data if it exists.
-        
+        Extract the highest quality video URL from tweet data.
+
         Args:
             tweet_data (Dict[str, Any]): The tweet data
-            
+
         Returns:
-            Optional[str]: The video URL or None if no video exists
+            Optional[str]: The highest quality video URL or None if no video exists
         """
         try:
-            # Check if video exists in the tweet data
-            if 'video' in tweet_data and tweet_data['video'] and 'variants' in tweet_data['video']:
-                variants = tweet_data['video']['variants']
-                
-                # Prefer MP4 format
-                mp4_variants = [v for v in variants if v.get('type') == 'video/mp4']
-                
-                if mp4_variants:
-                    # Sort by bitrate if available, otherwise just take the first one
-                    if 'bitrate' in mp4_variants[0]:
-                        mp4_variants.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
-                    
-                    return mp4_variants[0].get('src')
-                
-                # If no MP4 variants, return the first variant's source
-                if variants:
-                    return variants[0].get('src')
-            
-            # Check mediaDetails as an alternative
+            best_video_url = None
+            best_bitrate = 0
+            best_resolution = ""
+
+            # First, check mediaDetails section (preferred as it has bitrate info)
             if 'mediaDetails' in tweet_data:
                 for media in tweet_data['mediaDetails']:
                     if media.get('type') == 'video' and 'video_info' in media and 'variants' in media['video_info']:
                         variants = media['video_info']['variants']
-                        
-                        # Prefer MP4 format
+
+                        # Filter for MP4 format and find highest bitrate
                         mp4_variants = [v for v in variants if v.get('content_type') == 'video/mp4']
-                        
+
                         if mp4_variants:
-                            # Sort by bitrate if available
-                            if 'bitrate' in mp4_variants[0]:
-                                mp4_variants.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
-                            
-                            return mp4_variants[0].get('url')
-                        
-                        # If no MP4 variants, return the first variant's URL
-                        if variants:
-                            return variants[0].get('url')
-            
+                            # Sort by bitrate (highest first)
+                            mp4_variants.sort(key=lambda x: x.get('bitrate', 0), reverse=True)
+                            highest_quality = mp4_variants[0]
+
+                            bitrate = highest_quality.get('bitrate', 0)
+                            url = highest_quality.get('url')
+
+                            if bitrate > best_bitrate and url:
+                                best_bitrate = bitrate
+                                best_video_url = url
+                                # Extract resolution from URL if possible
+                                if '/vid/avc1/' in url:
+                                    resolution_part = url.split('/vid/avc1/')[1].split('/')[0]
+                                    best_resolution = resolution_part
+
+                                logger.info(f"Found high-quality video: {best_resolution} at {bitrate} bitrate")
+
+            # If we found a good video in mediaDetails, return it
+            if best_video_url and best_bitrate > 0:
+                logger.info(f"Selected highest quality video: {best_resolution} ({best_bitrate} bitrate)")
+                return best_video_url
+
+            # Fallback: Check the video section (may not have bitrate info)
+            if 'video' in tweet_data and tweet_data['video'] and 'variants' in tweet_data['video']:
+                variants = tweet_data['video']['variants']
+
+                # Prefer MP4 format
+                mp4_variants = [v for v in variants if v.get('type') == 'video/mp4']
+
+                if mp4_variants:
+                    # Try to sort by resolution if bitrate is not available
+                    # Look for resolution indicators in the src URL
+                    def get_resolution_priority(variant):
+                        src = variant.get('src', '')
+                        if '3840x2160' in src:
+                            return 4000  # 4K
+                        elif '1920x1080' in src:
+                            return 3000  # 1080p
+                        elif '1280x720' in src:
+                            return 2000  # 720p
+                        elif '640x360' in src:
+                            return 1000  # 360p
+                        elif '480x270' in src:
+                            return 500   # 270p
+                        else:
+                            return variant.get('bitrate', 0)  # Fallback to bitrate if available
+
+                    mp4_variants.sort(key=get_resolution_priority, reverse=True)
+                    selected_variant = mp4_variants[0]
+
+                    src_url = selected_variant.get('src')
+                    if src_url:
+                        # Extract resolution info for logging
+                        resolution_info = "unknown resolution"
+                        if '/vid/avc1/' in src_url:
+                            resolution_part = src_url.split('/vid/avc1/')[1].split('/')[0]
+                            resolution_info = resolution_part
+
+                        logger.info(f"Selected video from fallback method: {resolution_info}")
+                        return src_url
+
+                # If no MP4 variants, return the first variant's source
+                if variants:
+                    logger.warning("No MP4 variants found, using first available variant")
+                    return variants[0].get('src')
+
+            logger.warning("No video found in tweet data")
             return None
+
         except Exception as e:
             logger.error(f"Error extracting video URL from tweet data: {str(e)}", exc_info=True)
             return None
