@@ -1,22 +1,28 @@
 # x-thread-dl
 
-A Python CLI tool to download videos from X.com (Twitter) threads.
+A Python CLI tool to download media from X.com (Twitter) threads and generate TikTok video scripts using AI.
 
 ## Overview
 
 Given a tweet URL, this tool:
 1. Downloads the original tweet and up to 50 replies
-2. Identifies if the replies form a thread (consecutive replies from the original author)
-3. Extracts and saves text data from the tweets
-4. Downloads videos from the thread
+2. Extracts and saves text data and videos in a structured format
+3. **NEW**: Generates TikTok video scripts using LLM analysis via OpenRouter API
+4. Supports batch processing of multiple threads
 
-- Videos are saved with the naming convention `author_tweetID.mp4`
-- Text data is saved as JSON files with the naming convention `author_tweetID_thread.json`
+### Key Features
+- **Thread Downloading**: Download complete Twitter/X threads with replies
+- **Media Extraction**: Save videos and text content in organized directories
+- **🎬 TikTok Script Generation**: AI-powered script creation with Hook, Intro, and Explainer sections
+- **Multiple Script Styles**: Engaging, Educational, Viral, and Professional styles
+- **Batch Processing**: Generate scripts for all downloaded threads at once
+- **Flexible Integration**: Use as CLI tool or import as Python modules
 
 ## Requirements
 
-- Python 3.7+
-- Apify API token (sign up at [apify.com](https://apify.com))
+- Python 3.8+
+- Apify API token (sign up at [apify.com](https://apify.com)) - for downloading threads
+- OpenRouter API key (sign up at [openrouter.ai](https://openrouter.ai)) - for script generation
 
 ## Installation
 
@@ -37,59 +43,217 @@ Given a tweet URL, this tool:
    pip install -r requirements.txt
    ```
 
-4. Set up your Apify API token (required):
+4. Set up your API tokens:
    - Create a `.env` file in the project directory with:
      ```
      APIFY_API_TOKEN=your_apify_token_here
+     OPENROUTER_API_KEY=your_openrouter_key_here
      ```
-   - Or set it as an environment variable:
+   - Or set them as environment variables:
      ```
-     export APIFY_API_TOKEN=your_apify_token_here  # On Windows: set APIFY_API_TOKEN=your_apify_token_here
+     export APIFY_API_TOKEN=your_apify_token_here
+     export OPENROUTER_API_KEY=your_openrouter_key_here
      ```
-   - Or pass it as a command-line argument (see Usage below)
+   - Or pass them as command-line arguments (see Usage below)
 
 ## Usage
 
-Basic usage:
-```
-python main.py https://twitter.com/username/status/123456789
-```
-
-With options:
-```
-python main.py https://twitter.com/username/status/123456789 --reply-limit 100 --output-dir ./my_videos
+### Basic Thread Downloading
+```bash
+python main.py https://x.com/username/status/123456789
 ```
 
-### Options
+### Download + Generate TikTok Script (Recommended)
+```bash
+python main.py https://x.com/username/status/123456789 --generate-script
+```
 
+### Advanced Usage Examples
+```bash
+# Download with custom script style
+python main.py https://x.com/user/status/123 -g --script-style viral
+
+# Generate 45-second professional script
+python main.py https://x.com/user/status/123 -g -s professional -d 45
+
+# Download only, no script generation
+python main.py https://x.com/user/status/123 --reply-limit 100
+
+# Batch generate scripts for existing downloads
+python batch_script_generator.py output/ --style engaging
+```
+
+### CLI Options
+
+#### Core Options
 - `--reply-limit`, `-r`: Maximum number of replies to fetch (default: 50)
-- `--output-dir`, `-o`: Directory to save downloaded videos (default: ./downloaded_videos)
-- `--apify-token`, `-t`: Apify API token (can also be set as APIFY_API_TOKEN environment variable or in a .env file)
+- `--output-dir`, `-o`: Directory to save content (default: ./output)
+- `--apify-token`, `-t`: Apify API token
 - `--verbose`, `-v`: Enable verbose output
+
+#### Script Generation Options
+- `--generate-script`, `-g`: Generate TikTok script after downloading
+- `--openrouter-key`, `-k`: OpenRouter API key for script generation
+- `--script-style`, `-s`: Script style (engaging, educational, viral, professional)
+- `--script-duration`, `-d`: Target duration in seconds (default: 60)
+- `--script-model`, `-m`: LLM model to use (default: claude-3.5-sonnet)
+- `--no-replies-in-script`: Exclude replies from script generation
+
+## 🎬 TikTok Script Generation
+
+The tool now includes AI-powered TikTok script generation using OpenRouter API and liteLLM:
+
+### Script Structure
+Each generated script includes three sections:
+- **Hook** (10-15 seconds): Attention-grabbing opening
+- **Intro** (10-15 seconds): Brief context and setup
+- **Explainer** (30-40 seconds): Main content breakdown
+
+### Available Styles
+- **Engaging**: Conversational and relatable tone
+- **Educational**: Informative and clear explanations
+- **Viral**: High-energy, trend-focused content
+- **Professional**: Polished and authoritative tone
+
+### Supported Models
+- **DeepSeek R1 (default, free)** - Fast and capable reasoning model
+- Anthropic Claude 3.5 Sonnet
+- Anthropic Claude 3 Haiku
+- OpenAI GPT-4o / GPT-4o Mini
+- Meta Llama 3.1 8B Instruct
+- Google Gemini Pro 1.5
+- Qwen 2.5 72B Instruct (free)
+- Microsoft Phi-3 Medium (free)
+
+### Script Output Format
+```json
+{
+  "hook": {
+    "text": "Hook content here",
+    "duration_seconds": 15,
+    "visual_suggestions": ["suggestion 1", "suggestion 2"]
+  },
+  "intro": {
+    "text": "Intro content here",
+    "duration_seconds": 15,
+    "visual_suggestions": ["suggestion 1", "suggestion 2"]
+  },
+  "explainer": {
+    "text": "Main explainer content",
+    "duration_seconds": 30,
+    "visual_suggestions": ["suggestion 1", "suggestion 2"]
+  },
+  "metadata": {
+    "total_duration": 60,
+    "style": "engaging",
+    "key_points": ["point 1", "point 2"],
+    "hashtags": ["#hashtag1", "#hashtag2"]
+  }
+}
+```
 
 ## How It Works
 
-1. **Fetching Tweets**: Uses the Apify API to fetch the original tweet and its replies.
-2. **Thread Identification**: Identifies if the replies form a thread by checking if consecutive replies are from the original author.
-3. **Text Extraction**: Extracts text content and metadata from the tweets in the thread.
-4. **Text Storage**: Saves the extracted text data as JSON files in the `tweet_text` subdirectory.
-5. **Video Extraction**: Extracts video URLs from the tweets in the thread.
-6. **Video Download**: Downloads the videos using yt-dlp and saves them with the naming convention `author_tweetID.mp4`.
+### Thread Downloading
+1. **Fetching Tweets**: Uses Apify API to fetch the original tweet and replies
+2. **Data Parsing**: Extracts user info, thread ID, text content, and video URLs
+3. **Structured Storage**: Saves content in organized directory structure
+4. **Media Download**: Downloads videos using yt-dlp with quality selection
 
-## Text Data Format
+### Script Generation
+1. **Content Analysis**: Extracts and formats thread text and replies
+2. **LLM Processing**: Sends content to OpenRouter API with style-specific prompts
+3. **Script Structuring**: Parses AI response into Hook/Intro/Explainer format
+4. **Metadata Enhancement**: Adds hashtags, key points, and visual suggestions
 
-The text data is saved as a JSON file containing an array of tweet objects. Each tweet object includes:
+## Directory Structure
 
-- `tweet_id`: The ID of the tweet
-- `author`: The screen name of the tweet author
-- `text`: The text content of the tweet
-- `timestamp`: The creation timestamp of the tweet
-- `urls`: Array of URLs included in the tweet
-- `hashtags`: Array of hashtags used in the tweet
-- `mentions`: Array of user mentions in the tweet
-- `is_reply`: Boolean indicating if the tweet is a reply
-- `reply_to`: The screen name of the user being replied to (if applicable)
-- `reply_to_id`: The ID of the tweet being replied to (if applicable)
+Downloaded content is organized as follows:
+```
+output/
+├── {username}/
+│   └── {thread_id}/
+│       ├── thread_text.json          # Main thread content
+│       ├── tiktok_script.json         # Generated TikTok script
+│       ├── videos/
+│       │   └── {thread_id}.mp4        # Thread video
+│       └── replies/
+│           └── {reply_id}/
+│               ├── reply_text.json    # Reply content
+│               └── videos/
+│                   └── {reply_id}.mp4 # Reply video
+```
+
+## Batch Processing
+
+Generate scripts for all downloaded threads:
+
+```bash
+# Process all threads with default settings
+python batch_script_generator.py output/
+
+# Custom batch processing
+python batch_script_generator.py output/ \
+  --style viral \
+  --duration 45 \
+  --model "anthropic/claude-3-haiku" \
+  --max-concurrent 5 \
+  --force
+```
+
+### Batch Options
+- `--style`, `-s`: Script style for all threads
+- `--duration`, `-d`: Target duration for all scripts
+- `--model`, `-m`: LLM model to use
+- `--no-replies`: Exclude replies from all scripts
+- `--force`, `-f`: Regenerate existing scripts
+- `--max-concurrent`: Number of concurrent processing threads
+
+## Integration as Python Module
+
+```python
+import asyncio
+from pathlib import Path
+from script_generator import ScriptGenerator
+
+async def generate_script_example():
+    # Initialize generator
+    generator = ScriptGenerator(
+        api_key="your_openrouter_key",
+        model="anthropic/claude-3.5-sonnet"
+    )
+
+    # Generate script for a thread directory
+    thread_dir = Path("output/username/thread_id")
+    script_data = await generator.process_thread_directory(
+        thread_dir,
+        style="engaging",
+        target_duration=60,
+        include_replies=True
+    )
+
+    # Save script
+    if script_data:
+        output_file = thread_dir / "custom_script.json"
+        generator.save_script(script_data, output_file)
+
+# Run the example
+asyncio.run(generate_script_example())
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Missing API Keys**: Ensure both APIFY_API_TOKEN and OPENROUTER_API_KEY are set
+2. **Import Errors**: Install litellm with `pip install litellm`
+3. **Rate Limits**: Use `--max-concurrent` to limit concurrent requests
+4. **Model Errors**: Check available models at [openrouter.ai](https://openrouter.ai)
+
+### Debug Mode
+```bash
+python main.py <url> --verbose --generate-script
+```
 
 ## License
 
