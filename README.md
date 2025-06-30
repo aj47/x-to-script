@@ -8,7 +8,8 @@ Given a tweet URL, this tool:
 1. Downloads the original tweet and up to 50 replies
 2. Extracts and saves text data and videos in a structured format
 3. **NEW**: Generates TikTok video scripts using LLM analysis via OpenRouter API
-4. Supports batch processing of multiple threads
+4. **NEW**: Analyzes downloaded videos using Gemini API for enhanced script generation
+5. Supports batch processing of multiple threads
 
 ### Key Features
 - **Thread Downloading**: Download complete Twitter/X threads with replies
@@ -23,6 +24,7 @@ Given a tweet URL, this tool:
 - Python 3.8+
 - Apify API token (sign up at [apify.com](https://apify.com)) - for downloading threads
 - OpenRouter API key (sign up at [openrouter.ai](https://openrouter.ai)) - for script generation
+- **Optional**: Google Gemini API key (get from [Google AI Studio](https://makersuite.google.com/app/apikey)) - for video analysis
 
 ## Installation
 
@@ -48,6 +50,7 @@ Given a tweet URL, this tool:
      ```
      APIFY_API_TOKEN=your_apify_token_here
      OPENROUTER_API_KEY=your_openrouter_key_here
+     GEMINI_API_KEY=your_gemini_key_here  # Optional, for video analysis
      ```
    - Or set them as environment variables:
      ```
@@ -96,8 +99,13 @@ python batch_script_generator.py output/ --style engaging
 - `--openrouter-key`, `-k`: OpenRouter API key for script generation
 - `--script-style`, `-s`: Script style (engaging, educational, viral, professional)
 - `--script-duration`, `-d`: Target duration in seconds (default: 60)
-- `--script-model`, `-m`: LLM model to use (default: claude-3.5-sonnet)
+- `--script-model`, `-m`: LLM model to use (default: deepseek/deepseek-r1-0528:free)
 - `--no-replies-in-script`: Exclude replies from script generation
+
+#### Video Analysis Options (NEW!)
+- `--enable-video-analysis`: Enable video analysis using Gemini API
+- `--gemini-key`: Gemini API key for video analysis
+- `--video-analysis-model`: Gemini model to use (default: gemini-1.5-pro)
 
 ## 🎬 TikTok Script Generation
 
@@ -152,6 +160,85 @@ Each generated script includes three sections:
 }
 ```
 
+## 🆕 Enhanced Visual Content Curation
+
+The latest version includes **advanced visual content curation** that transforms TikTok script generation into a comprehensive video production guide:
+
+### Key Enhancements
+
+#### 🎯 Visual Content Selection
+- **Smart Tweet Selection**: AI identifies which specific tweets from the thread should be displayed visually
+- **Reply Highlighting**: Automatically selects the most engaging and relevant reply tweets to feature
+- **Media Integration**: Includes embedded images and videos from tweets in the visual timeline
+- **Author Prioritization**: Considers follower count and verification status when selecting content
+
+#### ⏱️ Timestamp Integration
+- **Precise Timing**: Each visual element has exact timestamp specifications (down to the second)
+- **Duration Control**: Specifies how long each visual element should remain on screen
+- **Narration Sync**: Maps visual content to specific moments in the script narration
+- **Transition Timing**: Includes smooth transitions between different visual elements
+
+#### 🎨 Presentation Instructions
+- **Animation Types**: fade_in, slide_up, zoom_in, typewriter, highlight effects
+- **Positioning**: center, top, bottom, left, right, overlay placements
+- **Visual Styles**: full_tweet, text_only, quote_style, highlighted_text, profile_focus
+- **Emphasis Effects**: normal, bold, glow, shake, pulse for important content
+
+### Enhanced Script Format
+
+The new format includes a comprehensive `visual_timeline` section:
+
+```json
+{
+  "visual_timeline": {
+    "total_duration": 60,
+    "timeline_events": [
+      {
+        "timestamp": 0,
+        "duration": 5,
+        "visual_type": "main_tweet",
+        "content": "Display original tweet",
+        "tweet_id": "1928480376386703849",
+        "presentation_details": {
+          "animation_in": "fade_in",
+          "position": "center",
+          "size": "large"
+        },
+        "sync_with_narration": {
+          "narration_text": "Specific part of script this syncs with",
+          "emphasis_words": ["key", "words"],
+          "timing_cue": "during_word"
+        }
+      }
+    ],
+    "tweet_references": {
+      "1928480376386703849": {
+        "usage_count": 2,
+        "display_timestamps": [0, 25],
+        "display_style": "full_tweet",
+        "highlight_text": ["important phrase"],
+        "author_focus": true
+      }
+    },
+    "visual_transitions": [
+      {
+        "from_timestamp": 14,
+        "to_timestamp": 16,
+        "transition_type": "fade",
+        "duration": 1,
+        "easing": "ease_in_out"
+      }
+    ]
+  }
+}
+```
+
+### Production Benefits
+- **Video Editing Ready**: Direct import into editing software with precise timing
+- **Consistent Branding**: Standardized visual presentation across all scripts
+- **Accessibility Support**: Built-in caption and high-contrast text recommendations
+- **Quality Control**: Production notes and software recommendations included
+
 ## How It Works
 
 ### Thread Downloading
@@ -162,9 +249,10 @@ Each generated script includes three sections:
 
 ### Script Generation
 1. **Content Analysis**: Extracts and formats thread text and replies
-2. **LLM Processing**: Sends content to OpenRouter API with style-specific prompts
-3. **Script Structuring**: Parses AI response into Hook/Intro/Explainer format
-4. **Metadata Enhancement**: Adds hashtags, key points, and visual suggestions
+2. **Video Analysis** (Optional): Uses Gemini API to analyze downloaded videos for visual context
+3. **LLM Processing**: Sends content to OpenRouter API with style-specific prompts and video insights
+4. **Script Structuring**: Parses AI response into Hook/Intro/Explainer format
+5. **Metadata Enhancement**: Adds hashtags, key points, and visual suggestions
 
 ## Directory Structure
 
@@ -209,6 +297,39 @@ python batch_script_generator.py output/ \
 - `--force`, `-f`: Regenerate existing scripts
 - `--max-concurrent`: Number of concurrent processing threads
 
+## 📹 Video Analysis (NEW!)
+
+The tool now includes advanced video analysis using Google's Gemini API to enhance TikTok script generation:
+
+### What Video Analysis Provides
+- **Scene Description**: Detailed analysis of visual content and key moments
+- **Text Extraction**: Identifies any text, captions, or graphics visible in videos
+- **Visual Elements**: Detects objects, people, settings, and demonstrations
+- **Mood Analysis**: Analyzes emotional tone and overall atmosphere
+- **Action Recognition**: Describes significant actions, gestures, or movements
+- **Script Integration**: Provides specific suggestions for incorporating visual elements
+
+### Usage with Video Analysis
+```bash
+# Enable video analysis for enhanced script generation
+python main.py "https://twitter.com/username/status/123456789" \
+  --generate-script \
+  --enable-video-analysis \
+  --gemini-key your_gemini_api_key
+```
+
+### Video Analysis Models
+- **gemini-1.5-pro**: Best for complex video analysis (default)
+- **gemini-1.5-flash**: Faster analysis for simple content
+- **gemini-1.0-pro-vision**: Legacy model with vision capabilities
+
+### Enhanced Script Output
+When video analysis is enabled, scripts include:
+- Visual context from analyzed videos
+- Scene-specific suggestions for hooks and explanations
+- Integration recommendations for visual elements
+- Enhanced metadata with video insights
+
 ## Integration as Python Module
 
 ```python
@@ -217,10 +338,12 @@ from pathlib import Path
 from script_generator import ScriptGenerator
 
 async def generate_script_example():
-    # Initialize generator
+    # Initialize generator with video analysis
     generator = ScriptGenerator(
         api_key="your_openrouter_key",
-        model="anthropic/claude-3.5-sonnet"
+        model="deepseek/deepseek-r1-0528:free",
+        enable_video_analysis=True,
+        gemini_api_key="your_gemini_key"
     )
 
     # Generate script for a thread directory
@@ -245,10 +368,12 @@ asyncio.run(generate_script_example())
 
 ### Common Issues
 
-1. **Missing API Keys**: Ensure both APIFY_API_TOKEN and OPENROUTER_API_KEY are set
-2. **Import Errors**: Install litellm with `pip install litellm`
-3. **Rate Limits**: Use `--max-concurrent` to limit concurrent requests
-4. **Model Errors**: Check available models at [openrouter.ai](https://openrouter.ai)
+1. **Missing API Keys**: Ensure APIFY_API_TOKEN and OPENROUTER_API_KEY are set
+2. **Video Analysis Issues**: Set GEMINI_API_KEY for video analysis features
+3. **Import Errors**: Install required packages with `pip install -r requirements.txt`
+4. **Rate Limits**: Use `--max-concurrent` to limit concurrent requests
+5. **Model Errors**: Check available models at [openrouter.ai](https://openrouter.ai)
+6. **Video File Size**: Gemini API has a 100MB limit for video files
 
 ### Debug Mode
 ```bash

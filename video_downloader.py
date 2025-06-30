@@ -36,27 +36,34 @@ def _save_json_content(data: Dict[str, Any], file_path: str):
     except Exception as e:
         logger.error(f"Error saving JSON content to {file_path}: {str(e)}", exc_info=True)
 
-def download_video_content(video_url: str, video_id: str, output_dir: str) -> Optional[str]:
+def download_video_content(video_url: str, video_id: str, output_dir: str, tweet_url: Optional[str] = None) -> Optional[str]:
     """
     Download a single video using yt-dlp.
     The filename will be {video_id}.mp4.
 
     Args:
-        video_url (str): The URL of the video to download.
+        video_url (str): The URL of the video to download (can be direct URL or tweet URL).
         video_id (str): The ID of the tweet/reply containing the video (used for filename).
         output_dir (str): The directory to save the video to.
-        
+        tweet_url (Optional[str]): The original tweet URL (preferred for Twitter videos).
+
     Returns:
         Optional[str]: The path to the downloaded video or None if download failed.
     """
     try:
         _ensure_dir_exists(output_dir)
-        
+
         output_filename = f"{video_id}.mp4"
         output_path = os.path.join(output_dir, output_filename)
-        
-        logger.info(f"Downloading video from {video_url} to {output_path}")
-        
+
+        # For Twitter videos, prefer the tweet URL over direct video URL
+        download_url = video_url
+        if tweet_url and ('twitter.com' in video_url or 'twimg.com' in video_url):
+            download_url = tweet_url
+            logger.info(f"Using tweet URL for Twitter video: {tweet_url}")
+
+        logger.info(f"Downloading video from {download_url} to {output_path}")
+
         ydl_opts = {
             # Prioritize highest quality MP4, then highest quality overall
             'format': 'best[ext=mp4][height>=2160]/best[ext=mp4][height>=1080]/best[ext=mp4]/best',
@@ -65,16 +72,18 @@ def download_video_content(video_url: str, video_id: str, output_dir: str) -> Op
             'no_warnings': False,
             'ignoreerrors': True,
             'nooverwrites': False, # Allow overwriting for retries or updates
-            'retries': 5,
+            'retries': 3, # Reduced retries for faster failure detection
             'logger': logger, # Pass our logger to yt-dlp
-            # Consider adding user agent if facing blocks:
-            # 'http_headers': {'User-Agent': 'Mozilla/5.0 ...'}
+            # Add user agent for better Twitter compatibility
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
         }
-        
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             # Get info about the video before downloading to log quality
             try:
-                info = ydl.extract_info(video_url, download=False)
+                info = ydl.extract_info(download_url, download=False)
                 if info:
                     format_info = info.get('format', 'unknown format')
                     resolution = f"{info.get('width', '?')}x{info.get('height', '?')}"
@@ -84,8 +93,8 @@ def download_video_content(video_url: str, video_id: str, output_dir: str) -> Op
             except Exception as e:
                 logger.warning(f"Could not extract video info for logging: {e}")
 
-            ydl.download([video_url])
-        
+            ydl.download([download_url])
+
         if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
             logger.info(f"Successfully downloaded video to {output_path}")
             return output_path
@@ -97,10 +106,10 @@ def download_video_content(video_url: str, video_id: str, output_dir: str) -> Op
             if os.path.exists(part_file):
                 logger.warning(f"Partial download file found: {part_file}. Download may have been interrupted.")
             return None
-            
+
     except Exception as e:
         # This catches errors during yt-dlp instantiation or other unexpected issues
-        logger.error(f"Error downloading video {video_id} from {video_url}: {str(e)}", exc_info=True)
+        logger.error(f"Error downloading video {video_id} from {download_url}: {str(e)}", exc_info=True)
         return None
 
 def save_parsed_thread_data(parsed_data: Dict[str, Any], base_output_dir: str = config.DEFAULT_OUTPUT_DIR) -> List[str]:
@@ -143,9 +152,11 @@ def save_parsed_thread_data(parsed_data: Dict[str, Any], base_output_dir: str = 
     for video_info in parsed_data.get("thread_videos", []):
         video_url = video_info.get("video_url")
         # Use main thread_id for its videos, as video_info.tweet_id is the same
-        video_id_for_filename = thread_id 
+        video_id_for_filename = thread_id
         if video_url and video_id_for_filename:
-            downloaded_path = download_video_content(video_url, video_id_for_filename, thread_videos_path)
+            # Construct the original tweet URL for better yt-dlp compatibility
+            tweet_url = f"https://x.com/{user_screen_name}/status/{thread_id}"
+            downloaded_path = download_video_content(video_url, video_id_for_filename, thread_videos_path, tweet_url)
             if downloaded_path:
                 saved_files.append(downloaded_path)
     
@@ -173,9 +184,12 @@ def save_parsed_thread_data(parsed_data: Dict[str, Any], base_output_dir: str = 
         for video_info in reply_info.get("reply_videos", []):
             video_url = video_info.get("video_url")
             # video_info.tweet_id here is actually the reply_id
-            video_id_for_filename = video_info.get("tweet_id", reply_id) 
+            video_id_for_filename = video_info.get("tweet_id", reply_id)
             if video_url and video_id_for_filename:
-                downloaded_path = download_video_content(video_url, video_id_for_filename, reply_videos_path)
+                # Construct the original reply tweet URL for better yt-dlp compatibility
+                reply_author = reply_info.get("reply_author_screen_name", "unknown")
+                reply_tweet_url = f"https://x.com/{reply_author}/status/{reply_id}"
+                downloaded_path = download_video_content(video_url, video_id_for_filename, reply_videos_path, reply_tweet_url)
                 if downloaded_path:
                     saved_files.append(downloaded_path)
                     

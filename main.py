@@ -23,6 +23,7 @@ from pathlib import Path
 # Import local modules
 import config
 import config_openrouter
+import config_gemini
 from scraper import Scraper
 from thread_parser import parse_tweet_and_replies_data # Updated import
 from video_downloader import save_parsed_thread_data  # Updated import, was video_downloader
@@ -65,10 +66,19 @@ logging.getLogger("litellm").setLevel(logging.WARNING)
               help=f'LLM model for script generation (default: {config.DEFAULT_SCRIPT_MODEL})')
 @click.option('--no-replies-in-script', is_flag=True,
               help='Exclude replies from script generation (only use main thread)')
+@click.option('--enable-video-analysis', is_flag=True,
+              help='Enable video analysis using Gemini API for enhanced script generation')
+@click.option('--gemini-key', default=None,
+              help='Gemini API key for video analysis (can also be set as GEMINI_API_KEY environment variable)')
+@click.option('--video-analysis-model', default=config_gemini.DEFAULT_VIDEO_MODEL,
+              type=click.Choice(config_gemini.AVAILABLE_VIDEO_MODELS),
+              help=f'Gemini model for video analysis (default: {config_gemini.DEFAULT_VIDEO_MODEL})')
 @click.option('--verbose', '-v', is_flag=True, help='Enable verbose (DEBUG level) output')
 def main(tweet_url: str, reply_limit: int, output_dir: str, apify_token: Optional[str],
          generate_script: bool, openrouter_key: Optional[str], script_style: str,
-         script_duration: int, script_model: str, no_replies_in_script: bool, verbose: bool):
+         script_duration: int, script_model: str, no_replies_in_script: bool,
+         enable_video_analysis: bool, gemini_key: Optional[str], video_analysis_model: str,
+         verbose: bool):
     """
     Download media (videos and text) from X.com (Twitter) threads and replies.
     
@@ -100,7 +110,8 @@ def main(tweet_url: str, reply_limit: int, output_dir: str, apify_token: Optiona
     asyncio.run(process_thread_and_replies(
         tweet_url, reply_limit, output_dir, effective_api_token,
         generate_script, openrouter_key, script_style, script_duration,
-        script_model, no_replies_in_script
+        script_model, no_replies_in_script, enable_video_analysis,
+        gemini_key, video_analysis_model
     ))
 
 async def process_thread_and_replies(
@@ -109,7 +120,10 @@ async def process_thread_and_replies(
     script_style: str = config_openrouter.DEFAULT_SCRIPT_STYLE,
     script_duration: int = config_openrouter.DEFAULT_TARGET_DURATION,
     script_model: str = config.DEFAULT_SCRIPT_MODEL,
-    no_replies_in_script: bool = False
+    no_replies_in_script: bool = False,
+    enable_video_analysis: bool = False,
+    gemini_key: Optional[str] = None,
+    video_analysis_model: str = config_gemini.DEFAULT_VIDEO_MODEL
 ):
     """
     Process a tweet URL to fetch, parse, and save the thread and its replies.
@@ -162,7 +176,8 @@ async def process_thread_and_replies(
             if generate_script:
                 await generate_tiktok_script(
                     Path(final_output_location), openrouter_key, script_style,
-                    script_duration, script_model, no_replies_in_script
+                    script_duration, script_model, no_replies_in_script,
+                    enable_video_analysis, gemini_key, video_analysis_model
                 )
 
     except Exception as e:
@@ -171,7 +186,9 @@ async def process_thread_and_replies(
 
 async def generate_tiktok_script(
     thread_dir: Path, openrouter_key: Optional[str], script_style: str,
-    script_duration: int, script_model: str, no_replies_in_script: bool
+    script_duration: int, script_model: str, no_replies_in_script: bool,
+    enable_video_analysis: bool = False, gemini_key: Optional[str] = None,
+    video_analysis_model: str = config_gemini.DEFAULT_VIDEO_MODEL
 ):
     """
     Generate a TikTok script for the downloaded thread.
@@ -183,6 +200,9 @@ async def generate_tiktok_script(
         script_duration (int): Target duration in seconds
         script_model (str): LLM model to use
         no_replies_in_script (bool): Whether to exclude replies
+        enable_video_analysis (bool): Whether to enable video analysis
+        gemini_key (Optional[str]): Gemini API key for video analysis
+        video_analysis_model (str): Gemini model for video analysis
     """
     try:
         logger.info("🎬 Generating TikTok script...")
@@ -193,8 +213,14 @@ async def generate_tiktok_script(
             logger.error(config_openrouter.ERROR_NO_API_KEY)
             return
 
-        # Initialize script generator
-        script_generator = ScriptGenerator(effective_openrouter_key, script_model)
+        # Initialize script generator with video analysis if enabled
+        script_generator = ScriptGenerator(
+            api_key=effective_openrouter_key,
+            model=script_model,
+            enable_video_analysis=enable_video_analysis,
+            gemini_api_key=gemini_key,
+            video_analysis_model=video_analysis_model
+        )
 
         # Generate script
         script_data = await script_generator.process_thread_directory(

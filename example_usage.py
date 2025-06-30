@@ -35,7 +35,10 @@ async def example_single_thread_script_generation():
     
     try:
         # Initialize script generator (you'll need to set OPENROUTER_API_KEY in your .env file)
-        script_generator = ScriptGenerator()
+        # For video analysis, also set GEMINI_API_KEY in your .env file
+        script_generator = ScriptGenerator(
+            enable_video_analysis=True  # Enable video analysis with Gemini API
+        )
         
         # Generate script with different styles
         styles = ["engaging", "educational", "viral", "professional"]
@@ -52,9 +55,16 @@ async def example_single_thread_script_generation():
             
             if script_data:
                 # Save with style-specific filename
-                output_file = thread_dir / f"tiktok_script_{style}.json"
+                output_file = thread_dir / f"tiktok_script_{style}_with_video_analysis.json"
                 script_generator.save_script(script_data, output_file)
                 logger.info(f"✅ {style.capitalize()} script saved to: {output_file}")
+
+                # Display video analysis info if available
+                source_metadata = script_data.get("source_metadata", {})
+                videos_analyzed = source_metadata.get("videos_analyzed", 0)
+                if videos_analyzed > 0:
+                    logger.info(f"📹 Video analysis included: {videos_analyzed} videos analyzed")
+                    logger.info("🎬 Script enhanced with visual context from videos")
             else:
                 logger.error(f"❌ Failed to generate {style} script")
                 
